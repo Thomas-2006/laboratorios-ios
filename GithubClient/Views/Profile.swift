@@ -8,27 +8,55 @@
 import SwiftUI
 
 struct Profile: View {
+    @StateObject private var viewController = ProfileViewController()
+
     var body: some View {
         NavigationStack {
-            VStack (alignment: .leading) {
-                Text("Thomas Nuñez")
-                    .font(.title)
-                
-                Image(uiImage: .imageNotFound)
-                    .resizable()
-                    .scaledToFit()
-                
-                Text("Thomas-2006")
-                    .font(.headline)
-                    .padding(.top)
-                
-                Text("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.")
-                    .font(.caption)
-                    .padding(.top)
+            Group {
+                if viewController.isLoading {
+                    ProgressView("Cargando Perfil...")
+                } else if let errorMsg = viewController.errorMsg {
+                    Text(errorMsg)
+                        .foregroundStyle(.red)
+                        .padding()
+                } else if let userInfo = viewController.userInfo {
+                    VStack(alignment: .leading) {
+                        AsyncImage(url: URL(string: userInfo.avatarUrl)) { image in
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        } placeholder: {
+                            Image(uiImage: .imageNotFound)
+                                .resizable()
+                                .scaledToFit()
+                        }
+                        .frame(width: 120, height: 120)
+                        .clipShape(Circle())
+                        .padding(.bottom, 8)
+
+                        Text(userInfo.name ?? userInfo.login)
+                            .font(.title)
+
+                        Text("@\(userInfo.login)")
+                            .font(.headline)
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 2)
+
+                        if let bio = userInfo.bio, !bio.isEmpty {
+                            Text(bio)
+                                .font(.caption)
+                                .padding(.top)
+                        }
+                    }
+                    .padding()
+                }
             }
-            .padding()
             .navigationTitle("Perfil")
-            
+        }
+        .onAppear {
+            Task {
+                await viewController.loadProfile()
+            }
         }
     }
 }
